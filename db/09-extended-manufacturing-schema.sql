@@ -7,6 +7,7 @@
 */
 
 SET NOCOUNT ON;
+SET QUOTED_IDENTIFIER ON;
 
 -- ============================================================
 -- 1. storage_locations
@@ -152,6 +153,9 @@ GO
 IF COL_LENGTH('dbo.quality_metric_types', 'value_type') IS NOT NULL
    AND COL_LENGTH('dbo.quality_metric_types', 'data_type') IS NULL
 BEGIN
+    -- Drop CHECK constraint that references value_type before renaming
+    IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_qmt_value_type')
+        ALTER TABLE dbo.quality_metric_types DROP CONSTRAINT CK_qmt_value_type;
     EXEC sp_rename 'dbo.quality_metric_types.value_type', 'data_type', 'COLUMN';
 END;
 GO

@@ -8,6 +8,7 @@ from app.models.foundations import (
     RecipeCategory,
     RunStatus,
     SalesChannel,
+    StorageLocation,
     Unit,
     UnitConversion,
 )
@@ -40,6 +41,8 @@ from app.models.production import (
     QualityTemplate,
     QualityTemplateItem,
     ProductType,
+    RunAttachment,
+    RunMaterial,
 )
 from app.models.products import (
     Attachment,
@@ -49,8 +52,14 @@ from app.models.products import (
     Sale,
     ScheduledProcessDocument,
 )
+from app.models.qc import (
+    QcPlan,
+    QcPlanRequirement,
+    RunQcEntry,
+)
 from app.models.recipes import (
     Ingredient,
+    Item,
     Recipe,
     RecipeVersion,
     RecipeVersionIngredient,
@@ -68,6 +77,7 @@ __all__ = [
     "IngredientInventory",
     "IngredientLot",
     "InventoryTransaction",
+    "Item",
     "Product",
     "ProductCategory",
     "ProductComplianceProfile",
@@ -80,6 +90,8 @@ __all__ = [
     "ProductionRunIngredient",
     "ProductionRunIngredientConsumption",
     "ProductionRunQualityLog",
+    "QcPlan",
+    "QcPlanRequirement",
     "QualityMetricType",
     "QualityTemplate",
     "QualityTemplateItem",
@@ -89,10 +101,14 @@ __all__ = [
     "RecipeVersionIngredient",
     "RecipeVersionStep",
     "Role",
+    "RunAttachment",
+    "RunMaterial",
+    "RunQcEntry",
     "RunStatus",
     "Sale",
     "SalesChannel",
     "ScheduledProcessDocument",
+    "StorageLocation",
     "Supplier",
     "Unit",
     "UnitConversion",

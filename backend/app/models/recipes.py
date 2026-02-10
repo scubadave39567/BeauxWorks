@@ -1,8 +1,9 @@
 """Phase 3: Recipes + Scaling Engine models."""
 
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String, Text, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, text
 from sqlalchemy.dialects.mssql import UNIQUEIDENTIFIER
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,6 +16,9 @@ class Recipe(Base, TimestampMixin, SoftDeleteMixin):
     recipe_id: Mapped[uuid.UUID] = pk_column()
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recipe_category_id: Mapped[uuid.UUID | None] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("recipe_categories.recipe_category_id"), nullable=True
+    )
     default_base_yield_value: Mapped[float] = mapped_column(Numeric(18, 4), nullable=False)
     default_base_yield_unit_id: Mapped[uuid.UUID] = mapped_column(
         UNIQUEIDENTIFIER, ForeignKey("units.unit_id"), nullable=False
@@ -23,6 +27,7 @@ class Recipe(Base, TimestampMixin, SoftDeleteMixin):
 
     versions: Mapped[list["RecipeVersion"]] = relationship(back_populates="recipe")
     default_base_yield_unit = relationship("Unit", foreign_keys=[default_base_yield_unit_id])
+    recipe_category = relationship("RecipeCategory", foreign_keys=[recipe_category_id])
 
 
 class RecipeVersion(Base, TimestampMixin, SoftDeleteMixin):
@@ -41,8 +46,20 @@ class RecipeVersion(Base, TimestampMixin, SoftDeleteMixin):
     )
     is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("0"))
 
+    # New status workflow columns
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default=text("'Draft'")
+    )
+    snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    released_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    released_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("users.user_id"), nullable=True
+    )
+    recipe_category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     recipe: Mapped["Recipe"] = relationship(back_populates="versions")
     base_yield_unit = relationship("Unit", foreign_keys=[base_yield_unit_id])
+    released_by = relationship("User", foreign_keys=[released_by_user_id])
     ingredients: Mapped[list["RecipeVersionIngredient"]] = relationship(
         back_populates="recipe_version"
     )
@@ -60,7 +77,20 @@ class Ingredient(Base, TimestampMixin, SoftDeleteMixin):
     ingredient_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("1"))
 
+    # Extended item fields
+    item_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, server_default=text("'Material'")
+    )
+    sku: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    item_guid: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER, nullable=False, server_default=text("NEWID()"), default=uuid.uuid4
+    )
+
     default_unit = relationship("Unit", foreign_keys=[default_unit_id])
+
+
+# Alias for semantic clarity — same table, same model
+Item = Ingredient
 
 
 class RecipeVersionIngredient(Base, TimestampMixin, SoftDeleteMixin):

@@ -29,6 +29,11 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     )
     locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    profile_photo_attachment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UNIQUEIDENTIFIER, nullable=True
+    )
 
     # Relationships
     user_roles: Mapped[list["UserRole"]] = relationship(back_populates="user", lazy="selectin")
@@ -133,3 +138,5 @@ class AuditLog(Base):
     ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
     metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    event_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    details_json: Mapped[str | None] = mapped_column(Text, nullable=True)

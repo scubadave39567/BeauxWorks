@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class RecipeVersionIngredientResponse(BaseModel):
@@ -41,8 +41,19 @@ class RecipeVersionResponse(BaseModel):
     base_yield_value: float
     base_yield_unit_id: UUID
     is_current: bool
+    status: str = "Draft"
+    released_at: datetime | None = None
     ingredients: list[RecipeVersionIngredientResponse] = []
     steps: list[RecipeVersionStepResponse] = []
+
+
+class RecipeVersionSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    recipe_version_id: UUID
+    version_number: int
+    is_current: bool
+    status: str = "Draft"
 
 
 class RecipeResponse(BaseModel):
@@ -51,10 +62,17 @@ class RecipeResponse(BaseModel):
     recipe_id: UUID
     name: str
     description: str | None = None
+    recipe_category_id: UUID | None = None
     default_base_yield_value: float
     default_base_yield_unit_id: UUID
     is_active: bool
     created_at: datetime
+    versions: list[RecipeVersionSummary] = []
+
+    @field_validator('versions', mode='before')
+    @classmethod
+    def exclude_deleted_versions(cls, v):
+        return [item for item in v if not getattr(item, 'is_deleted', False)]
 
 
 class RecipeDetailResponse(RecipeResponse):
@@ -64,6 +82,7 @@ class RecipeDetailResponse(RecipeResponse):
 class RecipeCreate(BaseModel):
     name: str
     description: str | None = None
+    recipe_category_id: UUID | None = None
     default_base_yield_value: float
     default_base_yield_unit_id: UUID
 
@@ -71,6 +90,7 @@ class RecipeCreate(BaseModel):
 class RecipeUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
+    recipe_category_id: UUID | None = None
     default_base_yield_value: float | None = None
     default_base_yield_unit_id: UUID | None = None
     is_active: bool | None = None

@@ -28,10 +28,13 @@ class QualityMetricType(Base, TimestampMixin, SoftDeleteMixin):
     unit_id: Mapped[uuid.UUID | None] = mapped_column(
         UNIQUEIDENTIFIER, ForeignKey("units.unit_id"), nullable=True
     )
-    value_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    data_type: Mapped[str] = mapped_column(String(20), nullable=False)
     min_value: Mapped[float | None] = mapped_column(Numeric(18, 6), nullable=True)
     max_value: Mapped[float | None] = mapped_column(Numeric(18, 6), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    requires_notes: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("0")
+    )
 
     unit = relationship("Unit", foreign_keys=[unit_id])
 
@@ -72,10 +75,24 @@ class ProductionRun(Base, TimestampMixin, SoftDeleteMixin):
     lot_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Extended manufacturing columns
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default=text("'Planned'")
+    )
+    snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    scaling_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    production_run_guid: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER, nullable=False, server_default=text("NEWID()"), default=uuid.uuid4
+    )
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("users.user_id"), nullable=True
+    )
+
     recipe_version = relationship("RecipeVersion", foreign_keys=[recipe_version_id])
     run_status = relationship("RunStatus", foreign_keys=[run_status_id])
     facility = relationship("Facility", foreign_keys=[facility_id])
     operator = relationship("User", foreign_keys=[operator_user_id])
+    created_by = relationship("User", foreign_keys=[created_by_user_id])
     product_type = relationship("ProductType", foreign_keys=[product_type_id])
     target_yield_unit = relationship("Unit", foreign_keys=[target_yield_unit_id])
     actual_yield_unit = relationship("Unit", foreign_keys=[actual_yield_unit_id])
@@ -85,6 +102,8 @@ class ProductionRun(Base, TimestampMixin, SoftDeleteMixin):
     quality_logs: Mapped[list["ProductionRunQualityLog"]] = relationship(back_populates="production_run")
     deviations: Mapped[list["ProductionRunDeviation"]] = relationship(back_populates="production_run")
     distributions: Mapped[list["ProductionRunDistribution"]] = relationship(back_populates="production_run")
+    run_materials: Mapped[list["RunMaterial"]] = relationship(back_populates="production_run")
+    run_attachments: Mapped[list["RunAttachment"]] = relationship(back_populates="production_run")
 
 
 class ProductionRunCode(Base, TimestampMixin, SoftDeleteMixin):
@@ -217,9 +236,23 @@ class ProductionRunDeviation(Base, TimestampMixin, SoftDeleteMixin):
         UNIQUEIDENTIFIER, ForeignKey("users.user_id"), nullable=True
     )
 
+    # Extended deviation fields
+    severity: Mapped[str] = mapped_column(
+        String(10), nullable=False, server_default=text("'Med'")
+    )
+    preventive_action: Mapped[str | None] = mapped_column(Text, nullable=True)
+    deviation_status: Mapped[str] = mapped_column(
+        "status", String(20), nullable=False, server_default=text("'Open'")
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    closed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("users.user_id"), nullable=True
+    )
+
     production_run: Mapped["ProductionRun"] = relationship(back_populates="deviations")
     detected_by = relationship("User", foreign_keys=[detected_by_user_id])
     resolved_by = relationship("User", foreign_keys=[resolved_by_user_id])
+    closed_by = relationship("User", foreign_keys=[closed_by_user_id])
 
 
 class ProductionRunDistribution(Base, TimestampMixin, SoftDeleteMixin):
@@ -246,6 +279,49 @@ class ProductionRunDistribution(Base, TimestampMixin, SoftDeleteMixin):
     production_run: Mapped["ProductionRun"] = relationship(back_populates="distributions")
     channel = relationship("SalesChannel", foreign_keys=[channel_id])
     unit = relationship("Unit", foreign_keys=[unit_id])
+
+
+class RunMaterial(Base, TimestampMixin, SoftDeleteMixin):
+    __tablename__ = "run_materials"
+
+    run_material_id: Mapped[uuid.UUID] = pk_column()
+    production_run_id: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("production_runs.production_run_id"), nullable=False
+    )
+    item_id: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("ingredients.ingredient_id"), nullable=False
+    )
+    planned_qty: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
+    planned_uom_id: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("units.unit_id"), nullable=False
+    )
+    waste_qty: Mapped[float] = mapped_column(
+        Numeric(18, 6), nullable=False, server_default=text("0")
+    )
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    snapshot_line_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    production_run: Mapped["ProductionRun"] = relationship(back_populates="run_materials")
+    item = relationship("Ingredient", foreign_keys=[item_id])
+    planned_uom = relationship("Unit", foreign_keys=[planned_uom_id])
+
+
+class RunAttachment(Base, TimestampMixin, SoftDeleteMixin):
+    __tablename__ = "run_attachments"
+
+    run_attachment_id: Mapped[uuid.UUID] = pk_column()
+    production_run_id: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("production_runs.production_run_id"), nullable=False
+    )
+    file_id: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("attachments.attachment_id"), nullable=False
+    )
+    related_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    related_id: Mapped[uuid.UUID | None] = mapped_column(UNIQUEIDENTIFIER, nullable=True)
+    caption: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    production_run: Mapped["ProductionRun"] = relationship(back_populates="run_attachments")
+    file = relationship("Attachment", foreign_keys=[file_id])
 
 
 class ApiIdempotencyKey(Base):

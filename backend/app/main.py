@@ -6,7 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_v1_router
 from app.config import settings
-from app.exceptions import generic_exception_handler
+from fastapi import HTTPException
+
+from app.exceptions import generic_exception_handler, http_exception_handler
 from app.middleware.audit import AuditMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 
@@ -45,6 +47,7 @@ app.add_middleware(AuditMiddleware)
 app.add_middleware(RateLimitMiddleware)
 
 # Exception handlers
+app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 
 # Mount v1 API

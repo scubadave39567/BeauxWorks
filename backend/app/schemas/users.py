@@ -33,3 +33,13 @@ class UserMeResponse(BaseModel):
     created_at: datetime
     roles: list[str] = []
     mfa_enabled: bool = False
+    phone: str | None = None
+    address: str | None = None
+    profile_photo_attachment_id: UUID | None = None
+
+
+class UserProfileUpdate(BaseModel):
+    display_name: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    profile_photo_attachment_id: UUID | None = None

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from app.api.deps import CurrentUser
-from app.schemas.users import UserMeResponse
+from app.api.deps import CurrentUser, DbSession
+from app.schemas.users import UserMeResponse, UserProfileUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -25,4 +25,16 @@ def get_me(current_user: CurrentUser):
         created_at=current_user.created_at,
         roles=roles,
         mfa_enabled=mfa_enabled,
+        phone=current_user.phone,
+        address=current_user.address,
+        profile_photo_attachment_id=current_user.profile_photo_attachment_id,
     )
+
+
+@router.patch("/me", response_model=UserMeResponse)
+def update_me(payload: UserProfileUpdate, current_user: CurrentUser, db: DbSession):
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(current_user, field, value)
+    db.commit()
+    db.refresh(current_user)
+    return get_me(current_user)

@@ -72,6 +72,21 @@ class RecipeCategory(Base, TimestampMixin, SoftDeleteMixin):
     name: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    is_fermented: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("0"))
+
+
+class StorageLocation(Base, TimestampMixin, SoftDeleteMixin):
+    __tablename__ = "storage_locations"
+
+    storage_location_id: Mapped[uuid.UUID] = pk_column()
+    facility_id: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("facilities.facility_id"), nullable=False
+    )
+    code: Mapped[str] = mapped_column(String(50), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("1"))
+
+    facility = relationship("Facility", foreign_keys=[facility_id])
 
 
 class ProductCategory(Base, TimestampMixin, SoftDeleteMixin):

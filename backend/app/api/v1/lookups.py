@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+from uuid import UUID
+
+from fastapi import APIRouter, HTTPException
 
 from app.api.deps import DbSession
 from app.models.foundations import (
@@ -15,11 +17,14 @@ from app.schemas.lookups import (
     ProductCategoryResponse,
     ProductTypeResponse,
     QualityMetricTypeResponse,
+    RecipeCategoryCreate,
     RecipeCategoryResponse,
+    RecipeCategoryUpdate,
     RunStatusResponse,
     SalesChannelResponse,
     UnitResponse,
 )
+from app.schemas.common import IdResponse
 
 router = APIRouter(prefix="/lookups", tags=["lookups"])
 
@@ -59,6 +64,8 @@ def list_sales_channels(db: DbSession):
     )
 
 
+# ── Recipe Categories CRUD ──────────────────────────────────────────
+
 @router.get("/recipe-categories", response_model=list[RecipeCategoryResponse])
 def list_recipe_categories(db: DbSession):
     return (
@@ -68,6 +75,46 @@ def list_recipe_categories(db: DbSession):
         .all()
     )
 
+
+@router.post("/recipe-categories", response_model=IdResponse, status_code=201)
+def create_recipe_category(payload: RecipeCategoryCreate, db: DbSession):
+    cat = RecipeCategory(**payload.model_dump())
+    db.add(cat)
+    db.commit()
+    db.refresh(cat)
+    return IdResponse(id=cat.recipe_category_id)
+
+
+@router.patch("/recipe-categories/{category_id}", response_model=RecipeCategoryResponse)
+def update_recipe_category(category_id: UUID, payload: RecipeCategoryUpdate, db: DbSession):
+    cat = (
+        db.query(RecipeCategory)
+        .filter(RecipeCategory.recipe_category_id == category_id, RecipeCategory.is_deleted == False)
+        .first()
+    )
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(cat, field, value)
+    db.commit()
+    db.refresh(cat)
+    return cat
+
+
+@router.delete("/recipe-categories/{category_id}", status_code=204)
+def delete_recipe_category(category_id: UUID, db: DbSession):
+    cat = (
+        db.query(RecipeCategory)
+        .filter(RecipeCategory.recipe_category_id == category_id, RecipeCategory.is_deleted == False)
+        .first()
+    )
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    cat.is_deleted = True
+    db.commit()
+
+
+# ── Other lookups ────────────────────────────────────────────────────
 
 @router.get("/product-categories", response_model=list[ProductCategoryResponse])
 def list_product_categories(db: DbSession):

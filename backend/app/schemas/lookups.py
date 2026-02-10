@@ -50,6 +50,21 @@ class RecipeCategoryResponse(BaseModel):
     name: str
     description: str | None = None
     sort_order: int
+    is_fermented: bool
+
+
+class RecipeCategoryCreate(BaseModel):
+    name: str
+    description: str | None = None
+    sort_order: int = 0
+    is_fermented: bool = False
+
+
+class RecipeCategoryUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    sort_order: int | None = None
+    is_fermented: bool | None = None
 
 
 class ProductCategoryResponse(BaseModel):

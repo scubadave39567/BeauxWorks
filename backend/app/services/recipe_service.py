@@ -1,9 +1,10 @@
 import uuid
+from datetime import datetime, timezone
 
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from app.exceptions import NotFoundError
+from app.exceptions import BusinessError, NotFoundError
 from app.models.recipes import (
     Ingredient,
     Recipe,
@@ -16,6 +17,7 @@ from app.models.recipes import (
 def list_recipes(db: Session) -> list[Recipe]:
     return (
         db.query(Recipe)
+        .options(selectinload(Recipe.versions))
         .filter(Recipe.is_deleted == False)
         .order_by(Recipe.name)
         .all()
@@ -56,6 +58,30 @@ def update_recipe(db: Session, recipe: Recipe, **kwargs) -> Recipe:
 def delete_recipe(db: Session, recipe: Recipe) -> None:
     recipe.is_deleted = True
     db.flush()
+
+
+def release_recipe_version(db: Session, version_id: uuid.UUID, user) -> RecipeVersion:
+    version = db.query(RecipeVersion).filter(RecipeVersion.recipe_version_id == version_id).first()
+    if not version:
+        raise NotFoundError("Recipe version not found")
+    if version.status != "Draft":
+        raise BusinessError(f"Cannot release a version with status '{version.status}'", error_code="INVALID_STATUS")
+    version.status = "Released"
+    version.released_at = datetime.now(timezone.utc)
+    version.released_by_user_id = user.user_id
+    db.flush()
+    return version
+
+
+def retire_recipe_version(db: Session, version_id: uuid.UUID, user) -> RecipeVersion:
+    version = db.query(RecipeVersion).filter(RecipeVersion.recipe_version_id == version_id).first()
+    if not version:
+        raise NotFoundError("Recipe version not found")
+    if version.status != "Released":
+        raise BusinessError(f"Cannot retire a version with status '{version.status}'", error_code="INVALID_STATUS")
+    version.status = "Retired"
+    db.flush()
+    return version
 
 
 def get_scaled_recipe(

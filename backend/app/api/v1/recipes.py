@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import AdminOrQA, CurrentUser, DbSession
 from app.schemas.recipes import (
     RecipeCreate,
     RecipeDetailResponse,
@@ -13,12 +13,15 @@ from app.schemas.recipes import (
     ScaledRecipeResponse,
 )
 from app.schemas.common import IdResponse
+from app.schemas.api_response import ApiResponse
 from app.services.recipe_service import (
     create_recipe,
     delete_recipe,
     get_recipe,
     get_scaled_recipe,
     list_recipes,
+    release_recipe_version,
+    retire_recipe_version,
     update_recipe,
 )
 
@@ -74,6 +77,8 @@ def get_one(recipe_id: UUID, db: DbSession):
             "base_yield_value": float(v.base_yield_value),
             "base_yield_unit_id": v.base_yield_unit_id,
             "is_current": v.is_current,
+            "status": v.status or "Draft",
+            "released_at": v.released_at,
             "ingredients": ingredients,
             "steps": steps,
         })
@@ -116,6 +121,20 @@ def delete(recipe_id: UUID, current_user: CurrentUser, db: DbSession):
     recipe = get_recipe(db, recipe_id)
     delete_recipe(db, recipe)
     db.commit()
+
+
+@router.post("/{recipe_id}/versions/{version_id}/release")
+def release_version(recipe_id: UUID, version_id: UUID, current_user: AdminOrQA, db: DbSession):
+    version = release_recipe_version(db, version_id, current_user)
+    db.commit()
+    return ApiResponse.ok({"recipe_version_id": str(version.recipe_version_id), "status": version.status})
+
+
+@router.post("/{recipe_id}/versions/{version_id}/retire")
+def retire_version(recipe_id: UUID, version_id: UUID, current_user: AdminOrQA, db: DbSession):
+    version = retire_recipe_version(db, version_id, current_user)
+    db.commit()
+    return ApiResponse.ok({"recipe_version_id": str(version.recipe_version_id), "status": version.status})
 
 
 @router.post("/scale", response_model=ScaledRecipeResponse)

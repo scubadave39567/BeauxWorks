@@ -50,3 +50,9 @@ def require_roles(*role_names: str):
         return current_user
 
     return _checker
+
+
+# Typed role dependency shortcuts
+AdminOrQA = Annotated[User, Depends(require_roles("admin", "qa"))]
+OperatorPlus = Annotated[User, Depends(require_roles("admin", "qa", "operator"))]
+AnyAuthenticated = CurrentUser

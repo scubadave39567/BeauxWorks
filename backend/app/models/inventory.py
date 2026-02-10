@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text, text
 from sqlalchemy.dialects.mssql import UNIQUEIDENTIFIER
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -69,6 +69,7 @@ class IngredientLot(Base, TimestampMixin, SoftDeleteMixin):
         UNIQUEIDENTIFIER, ForeignKey("units.unit_id"), nullable=False
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    vendor_lot_code: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     ingredient = relationship("Ingredient", foreign_keys=[ingredient_id])
     facility = relationship("Facility", foreign_keys=[facility_id])
@@ -105,10 +106,23 @@ class InventoryTransaction(Base, TimestampMixin, SoftDeleteMixin):
         UNIQUEIDENTIFIER, ForeignKey("users.user_id"), nullable=True
     )
 
+    # Extended ledger columns
+    location_id: Mapped[uuid.UUID | None] = mapped_column(UNIQUEIDENTIFIER, nullable=True)
+    reference_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    reference_id: Mapped[uuid.UUID | None] = mapped_column(UNIQUEIDENTIFIER, nullable=True)
+    reference_line_id: Mapped[uuid.UUID | None] = mapped_column(UNIQUEIDENTIFIER, nullable=True)
+    reason_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    voided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    voided_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UNIQUEIDENTIFIER, ForeignKey("users.user_id"), nullable=True
+    )
+    void_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     ingredient = relationship("Ingredient", foreign_keys=[ingredient_id])
     facility = relationship("Facility", foreign_keys=[facility_id])
     ingredient_lot = relationship("IngredientLot", foreign_keys=[ingredient_lot_id])
     unit = relationship("Unit", foreign_keys=[unit_id])
+    voided_by = relationship("User", foreign_keys=[voided_by_user_id])
 
 
 class ProductionRunIngredientConsumption(Base, TimestampMixin, SoftDeleteMixin):

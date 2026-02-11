@@ -5,6 +5,8 @@ from fastapi import APIRouter, HTTPException
 from app.api.deps import DbSession
 from app.models.foundations import (
     Facility,
+    IngredientCategory,
+    ItemType,
     ProductCategory,
     RecipeCategory,
     RunStatus,
@@ -12,8 +14,18 @@ from app.models.foundations import (
     Unit,
 )
 from app.models.production import ProductType, QualityMetricType
+from app.models.recipes import Ingredient
 from app.schemas.lookups import (
     FacilityResponse,
+    IngredientCategoryCreate,
+    IngredientCategoryResponse,
+    IngredientCategoryUpdate,
+    IngredientCreate,
+    IngredientResponse,
+    IngredientUpdate,
+    ItemTypeCreate,
+    ItemTypeResponse,
+    ItemTypeUpdate,
     ProductCategoryResponse,
     ProductTypeResponse,
     QualityMetricTypeResponse,
@@ -114,6 +126,106 @@ def delete_recipe_category(category_id: UUID, db: DbSession):
     db.commit()
 
 
+# ── Item Types CRUD ───────────────────────────────────────────────────
+
+@router.get("/item-types", response_model=list[ItemTypeResponse])
+def list_item_types(db: DbSession):
+    return (
+        db.query(ItemType)
+        .filter(ItemType.is_deleted == False)
+        .order_by(ItemType.sort_order)
+        .all()
+    )
+
+
+@router.post("/item-types", response_model=ItemTypeResponse, status_code=201)
+def create_item_type(payload: ItemTypeCreate, db: DbSession):
+    it = ItemType(**payload.model_dump())
+    db.add(it)
+    db.commit()
+    db.refresh(it)
+    return it
+
+
+@router.patch("/item-types/{item_type_id}", response_model=ItemTypeResponse)
+def update_item_type(item_type_id: UUID, payload: ItemTypeUpdate, db: DbSession):
+    it = (
+        db.query(ItemType)
+        .filter(ItemType.item_type_id == item_type_id, ItemType.is_deleted == False)
+        .first()
+    )
+    if not it:
+        raise HTTPException(status_code=404, detail="Item type not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(it, field, value)
+    db.commit()
+    db.refresh(it)
+    return it
+
+
+@router.delete("/item-types/{item_type_id}", status_code=204)
+def delete_item_type(item_type_id: UUID, db: DbSession):
+    it = (
+        db.query(ItemType)
+        .filter(ItemType.item_type_id == item_type_id, ItemType.is_deleted == False)
+        .first()
+    )
+    if not it:
+        raise HTTPException(status_code=404, detail="Item type not found")
+    it.is_deleted = True
+    db.commit()
+
+
+# ── Ingredient Categories CRUD ────────────────────────────────────────
+
+@router.get("/ingredient-categories", response_model=list[IngredientCategoryResponse])
+def list_ingredient_categories(db: DbSession):
+    return (
+        db.query(IngredientCategory)
+        .filter(IngredientCategory.is_deleted == False)
+        .order_by(IngredientCategory.sort_order)
+        .all()
+    )
+
+
+@router.post("/ingredient-categories", response_model=IngredientCategoryResponse, status_code=201)
+def create_ingredient_category(payload: IngredientCategoryCreate, db: DbSession):
+    ic = IngredientCategory(**payload.model_dump())
+    db.add(ic)
+    db.commit()
+    db.refresh(ic)
+    return ic
+
+
+@router.patch("/ingredient-categories/{cat_id}", response_model=IngredientCategoryResponse)
+def update_ingredient_category(cat_id: UUID, payload: IngredientCategoryUpdate, db: DbSession):
+    ic = (
+        db.query(IngredientCategory)
+        .filter(IngredientCategory.ingredient_category_id == cat_id, IngredientCategory.is_deleted == False)
+        .first()
+    )
+    if not ic:
+        raise HTTPException(status_code=404, detail="Ingredient category not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(ic, field, value)
+    db.commit()
+    db.refresh(ic)
+    return ic
+
+
+@router.delete("/ingredient-categories/{cat_id}", status_code=204)
+def delete_ingredient_category(cat_id: UUID, db: DbSession):
+    ic = (
+        db.query(IngredientCategory)
+        .filter(IngredientCategory.ingredient_category_id == cat_id, IngredientCategory.is_deleted == False)
+        .first()
+    )
+    if not ic:
+        raise HTTPException(status_code=404, detail="Ingredient category not found")
+    ic.is_deleted = True
+    db.commit()
+
+
 # ── Other lookups ────────────────────────────────────────────────────
 
 @router.get("/product-categories", response_model=list[ProductCategoryResponse])
@@ -144,3 +256,49 @@ def list_quality_metric_types(db: DbSession):
         .order_by(QualityMetricType.name)
         .all()
     )
+
+
+@router.get("/ingredients", response_model=list[IngredientResponse])
+def list_ingredients(db: DbSession, include_inactive: bool = False):
+    q = db.query(Ingredient).filter(Ingredient.is_deleted == False)
+    if not include_inactive:
+        q = q.filter(Ingredient.is_active == True)
+    return q.order_by(Ingredient.name).all()
+
+
+@router.post("/ingredients", response_model=IngredientResponse, status_code=201)
+def create_ingredient(payload: IngredientCreate, db: DbSession):
+    ing = Ingredient(**payload.model_dump())
+    db.add(ing)
+    db.commit()
+    db.refresh(ing)
+    return ing
+
+
+@router.patch("/ingredients/{ingredient_id}", response_model=IngredientResponse)
+def update_ingredient(ingredient_id: UUID, payload: IngredientUpdate, db: DbSession):
+    ing = (
+        db.query(Ingredient)
+        .filter(Ingredient.ingredient_id == ingredient_id, Ingredient.is_deleted == False)
+        .first()
+    )
+    if not ing:
+        raise HTTPException(status_code=404, detail="Ingredient not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(ing, field, value)
+    db.commit()
+    db.refresh(ing)
+    return ing
+
+
+@router.delete("/ingredients/{ingredient_id}", status_code=204)
+def delete_ingredient(ingredient_id: UUID, db: DbSession):
+    ing = (
+        db.query(Ingredient)
+        .filter(Ingredient.ingredient_id == ingredient_id, Ingredient.is_deleted == False)
+        .first()
+    )
+    if not ing:
+        raise HTTPException(status_code=404, detail="Ingredient not found")
+    ing.is_deleted = True
+    db.commit()

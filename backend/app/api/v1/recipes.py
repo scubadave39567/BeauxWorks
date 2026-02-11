@@ -4,6 +4,8 @@ from fastapi import APIRouter
 
 from app.api.deps import AdminOrQA, CurrentUser, DbSession
 from app.schemas.recipes import (
+    IngredientAdd,
+    IngredientUpdate,
     RecipeCreate,
     RecipeDetailResponse,
     RecipeResponse,
@@ -11,18 +13,28 @@ from app.schemas.recipes import (
     ScaleRequest,
     ScaledIngredientLine,
     ScaledRecipeResponse,
+    StepAdd,
+    StepUpdate,
+    VersionCreate,
 )
 from app.schemas.common import IdResponse
 from app.schemas.api_response import ApiResponse
 from app.services.recipe_service import (
+    add_ingredient,
+    add_step,
     create_recipe,
+    create_version,
+    delete_ingredient,
     delete_recipe,
+    delete_step,
     get_recipe,
     get_scaled_recipe,
     list_recipes,
     release_recipe_version,
     retire_recipe_version,
+    update_ingredient,
     update_recipe,
+    update_step,
 )
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
@@ -86,6 +98,7 @@ def get_one(recipe_id: UUID, db: DbSession):
         recipe_id=recipe.recipe_id,
         name=recipe.name,
         description=recipe.description,
+        recipe_category_id=recipe.recipe_category_id,
         default_base_yield_value=float(recipe.default_base_yield_value),
         default_base_yield_unit_id=recipe.default_base_yield_unit_id,
         is_active=recipe.is_active,
@@ -135,6 +148,65 @@ def retire_version(recipe_id: UUID, version_id: UUID, current_user: AdminOrQA, d
     version = retire_recipe_version(db, version_id, current_user)
     db.commit()
     return ApiResponse.ok({"recipe_version_id": str(version.recipe_version_id), "status": version.status})
+
+
+# ── Version CRUD ───────────────────────────────────────────────────
+
+@router.post("/{recipe_id}/versions", status_code=201)
+def create_ver(recipe_id: UUID, body: VersionCreate, current_user: CurrentUser, db: DbSession):
+    version = create_version(
+        db, recipe_id,
+        base_yield_value=body.base_yield_value,
+        base_yield_unit_id=body.base_yield_unit_id,
+        title=body.title,
+        notes=body.notes,
+    )
+    db.commit()
+    return {"recipe_version_id": str(version.recipe_version_id), "version_number": version.version_number}
+
+
+# ── Ingredient CRUD ────────────────────────────────────────────────
+
+@router.post("/{recipe_id}/versions/{version_id}/ingredients", status_code=201)
+def add_ing(recipe_id: UUID, version_id: UUID, body: IngredientAdd, current_user: CurrentUser, db: DbSession):
+    ing = add_ingredient(db, version_id, **body.model_dump())
+    db.commit()
+    return {"recipe_version_ingredient_id": str(ing.recipe_version_ingredient_id)}
+
+
+@router.patch("/{recipe_id}/versions/{version_id}/ingredients/{ingredient_id}")
+def update_ing(recipe_id: UUID, version_id: UUID, ingredient_id: UUID, body: IngredientUpdate, current_user: CurrentUser, db: DbSession):
+    ing = update_ingredient(db, version_id, ingredient_id, **body.model_dump(exclude_unset=True))
+    db.commit()
+    return {"recipe_version_ingredient_id": str(ing.recipe_version_ingredient_id)}
+
+
+@router.delete("/{recipe_id}/versions/{version_id}/ingredients/{ingredient_id}", status_code=204)
+def remove_ing(recipe_id: UUID, version_id: UUID, ingredient_id: UUID, current_user: CurrentUser, db: DbSession):
+    delete_ingredient(db, version_id, ingredient_id)
+    db.commit()
+
+
+# ── Step CRUD ──────────────────────────────────────────────────────
+
+@router.post("/{recipe_id}/versions/{version_id}/steps", status_code=201)
+def add_stp(recipe_id: UUID, version_id: UUID, body: StepAdd, current_user: CurrentUser, db: DbSession):
+    step = add_step(db, version_id, **body.model_dump())
+    db.commit()
+    return {"recipe_version_step_id": str(step.recipe_version_step_id)}
+
+
+@router.patch("/{recipe_id}/versions/{version_id}/steps/{step_id}")
+def update_stp(recipe_id: UUID, version_id: UUID, step_id: UUID, body: StepUpdate, current_user: CurrentUser, db: DbSession):
+    step = update_step(db, version_id, step_id, **body.model_dump(exclude_unset=True))
+    db.commit()
+    return {"recipe_version_step_id": str(step.recipe_version_step_id)}
+
+
+@router.delete("/{recipe_id}/versions/{version_id}/steps/{step_id}", status_code=204)
+def remove_stp(recipe_id: UUID, version_id: UUID, step_id: UUID, current_user: CurrentUser, db: DbSession):
+    delete_step(db, version_id, step_id)
+    db.commit()
 
 
 @router.post("/scale", response_model=ScaledRecipeResponse)

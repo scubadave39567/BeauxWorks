@@ -25,7 +25,7 @@ const RecordSaleForm = lazy(() => import('@/features/sales/record-sale-form'))
 const CmsPage = lazy(() => import('@/features/cms/cms-page'))
 const CmsEditorPage = lazy(() => import('@/features/cms/cms-editor-page'))
 const MyRunsPage = lazy(() => import('@/features/production/my-runs-page'))
-const ProfilePage = lazy(() => import('@/features/settings/profile-page'))
+const SettingsPage = lazy(() => import('@/features/settings/settings-page'))
 
 function SuspenseWrap({ children }) {
   return <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
@@ -138,7 +138,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <SuspenseWrap><ProfilePage /></SuspenseWrap>,
+        element: <SuspenseWrap><SettingsPage /></SuspenseWrap>,
       },
     ],
   },

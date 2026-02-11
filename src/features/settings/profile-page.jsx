@@ -20,8 +20,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { RecipeCategoriesManager } from './recipe-categories-manager'
-import { ShieldCheck, User, Camera, Pencil, Phone, MapPin } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ShieldCheck, User, Camera, Pencil, Phone, MapPin, Database, ChevronRight } from 'lucide-react'
 import { formatDateTime } from '@/lib/format'
 import { toast } from 'sonner'
 import { useRef } from 'react'
@@ -29,6 +29,7 @@ import { useRef } from 'react'
 export default function ProfilePage() {
   const { user, fetchUser } = useAuth()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const photoInputRef = useRef(null)
 
   // Profile editing
@@ -244,8 +245,23 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Recipe Categories */}
-        <RecipeCategoriesManager />
+        {/* Code Tables Link */}
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/settings/codes')}>
+          <CardContent className="py-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Database className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Code Tables</p>
+                  <p className="text-sm text-muted-foreground">
+                    Manage ingredients, item types, ingredient categories, recipe categories, and QC plans
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Edit Profile Dialog */}

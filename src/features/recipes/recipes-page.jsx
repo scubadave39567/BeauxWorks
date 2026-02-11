@@ -23,6 +23,8 @@ export default function RecipesPage() {
     queryFn: getRecipes,
   })
 
+  const VERSION_STATUS_VARIANT = { Draft: 'secondary', Released: 'success', Retired: 'outline' }
+
   const columns = [
     {
       accessorKey: 'name',
@@ -46,13 +48,21 @@ export default function RecipesPage() {
       },
     },
     {
-      accessorKey: 'description',
-      header: 'Description',
-      cell: ({ row }) => (
-        <span className="text-muted-foreground line-clamp-1">
-          {row.original.description || '—'}
-        </span>
-      ),
+      accessorKey: 'versions',
+      header: 'Versions',
+      cell: ({ row }) => {
+        const versions = row.original.versions || []
+        if (versions.length === 0) return <span className="text-muted-foreground">—</span>
+        return (
+          <div className="flex gap-1 flex-wrap">
+            {versions.map((v) => (
+              <Badge key={v.recipe_version_id} variant={VERSION_STATUS_VARIANT[v.status] || 'outline'}>
+                v{v.version_number} {v.status}
+              </Badge>
+            ))}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'is_active',
@@ -99,6 +109,7 @@ export default function RecipesPage() {
           const cat = recipe.recipe_category_id
             ? recipeCategoriesMap.get(recipe.recipe_category_id)
             : null
+          const versions = recipe.versions || []
           return (
             <Card>
               <CardContent className="p-4">
@@ -114,9 +125,20 @@ export default function RecipesPage() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant={recipe.is_active ? 'success' : 'outline'}>
-                    {recipe.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant={recipe.is_active ? 'success' : 'outline'}>
+                      {recipe.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                    {versions.length > 0 && (
+                      <div className="flex gap-1">
+                        {versions.map((v) => (
+                          <Badge key={v.recipe_version_id} variant={VERSION_STATUS_VARIANT[v.status] || 'outline'} className="text-[10px] px-1.5 py-0">
+                            v{v.version_number} {v.status}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

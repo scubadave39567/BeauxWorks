@@ -1,37 +1,37 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { getProductionRuns } from '@/api/production-runs'
+import { getRuns } from '@/api/runs'
 import { useLookups } from '@/hooks/use-lookups'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { DataTable } from '@/components/shared/data-table'
 import { SearchInput } from '@/components/shared/search-input'
-import { StatusBadge } from '@/components/shared/status-badge'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { Plus, Factory } from 'lucide-react'
 import { formatDateTime, formatNumber } from '@/lib/format'
+
+const STATUS_LABELS = { Planned: 'Planned', InProgress: 'In Progress', Completed: 'Completed', Canceled: 'Canceled' }
+const STATUS_VARIANTS = { Planned: 'outline', InProgress: 'warning', Completed: 'success', Canceled: 'destructive' }
 
 export default function ProductionRunsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const navigate = useNavigate()
-  const { runStatuses, runStatusesMap, unitsMap, facilitiesMap } = useLookups()
+  const { unitsMap, facilitiesMap } = useLookups()
 
   const { data: runs = [], isLoading } = useQuery({
-    queryKey: ['production-runs'],
-    queryFn: () => getProductionRuns(0, 200),
+    queryKey: ['runs'],
+    queryFn: () => getRuns({ limit: 200 }),
   })
 
   const filteredRuns =
     statusFilter === 'all'
       ? runs
-      : runs.filter((r) => {
-          const status = runStatusesMap.get(r.run_status_id)
-          return status?.code === statusFilter
-        })
+      : runs.filter((r) => r.status === statusFilter)
 
   const columns = [
     {
@@ -42,12 +42,13 @@ export default function ProductionRunsPage() {
       ),
     },
     {
-      accessorKey: 'run_status_id',
+      accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => {
-        const status = runStatusesMap.get(row.original.run_status_id)
-        return <StatusBadge status={status?.code} label={status?.name} />
-      },
+      cell: ({ row }) => (
+        <Badge variant={STATUS_VARIANTS[row.original.status] || 'outline'}>
+          {STATUS_LABELS[row.original.status] || row.original.status}
+        </Badge>
+      ),
     },
     {
       accessorKey: 'facility_id',
@@ -59,8 +60,7 @@ export default function ProductionRunsPage() {
       header: 'Target Yield',
       cell: ({ row }) => (
         <span className="font-mono">
-          {formatNumber(row.original.target_yield_value)}{' '}
-          {unitsMap.get(row.original.target_yield_unit_id)?.abbreviation}
+          {formatNumber(row.original.target_yield_value)}
         </span>
       ),
     },
@@ -73,9 +73,11 @@ export default function ProductionRunsPage() {
 
   if (isLoading) return <LoadingSpinner />
 
+  const statusCounts = runs.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc }, {})
+
   return (
     <div>
-      <PageHeader title="Production Runs" description="Track and manage production batches">
+      <PageHeader title="Production Runs" description={`${runs.length} runs — state machine workflow: Planned → In Progress → Completed`}>
         <Button onClick={() => navigate('/production/new')}>
           <Plus className="h-4 w-4" />
           New Run
@@ -93,16 +95,11 @@ export default function ProductionRunsPage() {
       <Tabs value={statusFilter} onValueChange={setStatusFilter}>
         <TabsList className="mb-4 flex-wrap h-auto">
           <TabsTrigger value="all">All ({runs.length})</TabsTrigger>
-          {runStatuses
-            .sort((a, b) => a.sort_order - b.sort_order)
-            .map((s) => {
-              const count = runs.filter((r) => r.run_status_id === s.run_status_id).length
-              return (
-                <TabsTrigger key={s.code} value={s.code}>
-                  {s.name} ({count})
-                </TabsTrigger>
-              )
-            })}
+          {['Planned', 'InProgress', 'Completed', 'Canceled'].map((s) => (
+            <TabsTrigger key={s} value={s}>
+              {STATUS_LABELS[s]} ({statusCounts[s] || 0})
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value={statusFilter}>
@@ -113,7 +110,6 @@ export default function ProductionRunsPage() {
             searchValue={search}
             onRowClick={(row) => navigate(`/production/${row.production_run_id}`)}
             renderCard={(run) => {
-              const status = runStatusesMap.get(run.run_status_id)
               const facility = facilitiesMap.get(run.facility_id)
               return (
                 <Card>
@@ -126,12 +122,13 @@ export default function ProductionRunsPage() {
                         <div>
                           <p className="font-mono font-medium">{run.lot_code || 'No lot code'}</p>
                           <p className="text-xs text-muted-foreground">
-                            {facility?.name} | {formatNumber(run.target_yield_value)}{' '}
-                            {unitsMap.get(run.target_yield_unit_id)?.abbreviation}
+                            {facility?.name} | {formatNumber(run.target_yield_value)}
                           </p>
                         </div>
                       </div>
-                      <StatusBadge status={status?.code} label={status?.name} />
+                      <Badge variant={STATUS_VARIANTS[run.status] || 'outline'}>
+                        {STATUS_LABELS[run.status] || run.status}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>

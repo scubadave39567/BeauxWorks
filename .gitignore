@@ -37,3 +37,7 @@ venv/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+
+# Windows artifacts
+NUL
+nul

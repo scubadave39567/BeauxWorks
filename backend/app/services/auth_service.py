@@ -189,7 +189,8 @@ def refresh_tokens(
         raise UnauthorizedError("Invalid refresh token")
 
     now = datetime.now(timezone.utc)
-    if record.expires_at < now:
+    expires_at = record.expires_at.replace(tzinfo=timezone.utc) if record.expires_at.tzinfo is None else record.expires_at
+    if expires_at < now:
         raise UnauthorizedError("Refresh token expired")
 
     # Revoke old token

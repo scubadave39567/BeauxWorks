@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getRecipe, deleteRecipe } from '@/api/recipes'
+import { getRecipe, deleteRecipe, createVersion } from '@/api/recipes'
 import { useLookups } from '@/hooks/use-lookups'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -18,9 +20,12 @@ import {
 } from '@/components/ui/dialog'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
+import { UnitSelect } from '@/components/shared/unit-select'
 import { ScaleCalculator } from './scale-calculator'
 import { RecipeVersionManager } from './recipe-version-manager'
-import { Pencil, Trash2, Scale, AlertTriangle, Printer } from 'lucide-react'
+import { IngredientEditor } from './ingredient-editor'
+import { StepEditor } from './step-editor'
+import { Pencil, Trash2, Scale, AlertTriangle, Printer, Plus } from 'lucide-react'
 import { formatNumber, formatDate } from '@/lib/format'
 import { toast } from 'sonner'
 
@@ -32,6 +37,9 @@ export default function RecipeDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [scaleOpen, setScaleOpen] = useState(false)
   const [printOpen, setPrintOpen] = useState(false)
+  const [versionOpen, setVersionOpen] = useState(false)
+  const [newYieldValue, setNewYieldValue] = useState('')
+  const [newYieldUnitId, setNewYieldUnitId] = useState('')
   const printRef = useRef(null)
 
   const { data: recipe, isLoading } = useQuery({
@@ -48,6 +56,22 @@ export default function RecipeDetailPage() {
     },
     onError: () => toast.error('Failed to delete recipe'),
   })
+
+  const versionMutation = useMutation({
+    mutationFn: (payload) => createVersion(id, payload),
+    onSuccess: () => {
+      toast.success('New version created')
+      queryClient.invalidateQueries({ queryKey: ['recipe', id] })
+      setVersionOpen(false)
+    },
+    onError: (e) => toast.error(e.message || 'Failed to create version'),
+  })
+
+  function openCreateVersion() {
+    setNewYieldValue(String(recipe?.default_base_yield_value || ''))
+    setNewYieldUnitId(recipe?.default_base_yield_unit_id || '')
+    setVersionOpen(true)
+  }
 
   function handlePrint(mode) {
     setPrintOpen(false)
@@ -145,6 +169,9 @@ export default function RecipeDetailPage() {
             </Button>
           </>
         )}
+        <Button variant="outline" onClick={openCreateVersion}>
+          <Plus className="h-4 w-4" /> New Version
+        </Button>
         <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
           <Trash2 className="h-4 w-4" /> Delete
         </Button>
@@ -175,87 +202,11 @@ export default function RecipeDetailPage() {
           </TabsList>
 
           <TabsContent value="ingredients">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  Ingredients — v{currentVersion.version_number}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {currentVersion.ingredients.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No ingredients defined</p>
-                ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>#</TableHead>
-                          <TableHead>Ingredient</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead>Unit</TableHead>
-                          <TableHead>Notes</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {currentVersion.ingredients
-                          .sort((a, b) => a.sort_order - b.sort_order)
-                          .map((ing) => (
-                            <TableRow key={ing.recipe_version_ingredient_id}>
-                              <TableCell>{ing.sort_order}</TableCell>
-                              <TableCell className="font-medium">{ing.ingredient_name}</TableCell>
-                              <TableCell className="text-right font-mono">
-                                {formatNumber(ing.base_amount)}
-                              </TableCell>
-                              <TableCell>{ing.unit_abbreviation}</TableCell>
-                              <TableCell className="text-muted-foreground">{ing.notes || '—'}</TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <IngredientEditor recipeId={id} version={currentVersion} />
           </TabsContent>
 
           <TabsContent value="steps">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Steps</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {currentVersion.steps.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No steps defined</p>
-                ) : (
-                  <div className="space-y-4">
-                    {currentVersion.steps
-                      .sort((a, b) => a.step_number - b.step_number)
-                      .map((step) => (
-                        <div
-                          key={step.recipe_version_step_id}
-                          className="flex gap-4 p-4 rounded-lg border"
-                        >
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                            {step.step_number}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm">{step.instruction}</p>
-                            {step.critical_control_point && (
-                              <div className="flex items-center gap-1 mt-2 text-xs text-destructive">
-                                <AlertTriangle className="h-3 w-3" />
-                                Critical Control Point
-                              </div>
-                            )}
-                            {step.notes && (
-                              <p className="text-xs text-muted-foreground mt-1">{step.notes}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <StepEditor recipeId={id} version={currentVersion} />
           </TabsContent>
 
           <TabsContent value="versions">
@@ -295,7 +246,14 @@ export default function RecipeDetailPage() {
           </TabsContent>
         </Tabs>
       ) : (
-        <p className="text-muted-foreground">No versions available</p>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground mb-4">No versions yet. Create your first version to start adding ingredients and steps.</p>
+            <Button onClick={openCreateVersion} className="min-h-[44px]">
+              <Plus className="h-4 w-4" /> Create First Version
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       <ConfirmDialog
@@ -315,6 +273,35 @@ export default function RecipeDetailPage() {
           recipeVersionId={currentVersion.recipe_version_id}
         />
       )}
+
+      {/* Create Version Dialog */}
+      <Dialog open={versionOpen} onOpenChange={setVersionOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Create New Version</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Base Yield</Label>
+                <Input type="number" step="any" value={newYieldValue} onChange={(e) => setNewYieldValue(e.target.value)} className="min-h-[44px]" />
+              </div>
+              <div className="space-y-2">
+                <Label>Yield Unit</Label>
+                <UnitSelect units={unitsMap ? Array.from(unitsMap.values()) : []} value={newYieldUnitId} onChange={(e) => setNewYieldUnitId(e.target.value)} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVersionOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => versionMutation.mutate({ base_yield_value: parseFloat(newYieldValue), base_yield_unit_id: newYieldUnitId })}
+              disabled={!newYieldValue || !newYieldUnitId || versionMutation.isPending}
+              className="min-h-[44px]"
+            >
+              {versionMutation.isPending ? 'Creating...' : 'Create Version'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Print Options Dialog */}
       <Dialog open={printOpen} onOpenChange={setPrintOpen}>

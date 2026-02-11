@@ -89,6 +89,24 @@ class StorageLocation(Base, TimestampMixin, SoftDeleteMixin):
     facility = relationship("Facility", foreign_keys=[facility_id])
 
 
+class ItemType(Base, TimestampMixin, SoftDeleteMixin):
+    __tablename__ = "item_types"
+
+    item_type_id: Mapped[uuid.UUID] = pk_column()
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+
+
+class IngredientCategory(Base, TimestampMixin, SoftDeleteMixin):
+    __tablename__ = "ingredient_categories"
+
+    ingredient_category_id: Mapped[uuid.UUID] = pk_column()
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+
+
 class ProductCategory(Base, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "product_categories"
 

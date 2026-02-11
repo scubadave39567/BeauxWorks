@@ -96,6 +96,48 @@ class RecipeUpdate(BaseModel):
     is_active: bool | None = None
 
 
+class VersionCreate(BaseModel):
+    title: str | None = None
+    notes: str | None = None
+    base_yield_value: float
+    base_yield_unit_id: UUID
+
+
+class IngredientAdd(BaseModel):
+    ingredient_id: UUID
+    base_amount: float
+    unit_id: UUID
+    sort_order: int = 1000
+    rounding_mode: str | None = None
+    rounding_decimals: int | None = None
+    rounding_increment: float | None = None
+    notes: str | None = None
+
+
+class IngredientUpdate(BaseModel):
+    base_amount: float | None = None
+    unit_id: UUID | None = None
+    sort_order: int | None = None
+    rounding_mode: str | None = None
+    rounding_decimals: int | None = None
+    rounding_increment: float | None = None
+    notes: str | None = None
+
+
+class StepAdd(BaseModel):
+    step_number: int
+    instruction: str
+    critical_control_point: bool = False
+    notes: str | None = None
+
+
+class StepUpdate(BaseModel):
+    step_number: int | None = None
+    instruction: str | None = None
+    critical_control_point: bool | None = None
+    notes: str | None = None
+
+
 class ScaleRequest(BaseModel):
     recipe_version_id: UUID
     target_yield_value: float

@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where:*)",
+      "Bash(sqlcmd:*)",
+      "Bash(pip install:*)",
+      "Bash(python -m pip:*)",
+      "Bash(winget install:*)",
+      "Bash(export PATH:*)",
+      "Bash(python -m venv:*)",
+      "Bash(source:*)",
+      "Bash(python -c:*)",
+      "Bash(timeout 10 uvicorn:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(alembic stamp:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd Python FastAPI backend scaffold with full API for BeauxWorks\n\nComplete backend implementation covering auth \\(JWT + MFA\\), 44 SQLAlchemy\nmodels across 7 domains \\(identity, foundations, recipes, production,\ninventory, products, CMS\\), 12 API routers, services with stored procedure\nsupport, middleware \\(audit, idempotency, rate limiting\\), and Alembic\nconfig. Includes React frontend scaffold, SQL schema files, and Vite\ndev proxy.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git config:*)",
+      "Bash(npm install:*)",
+      "Bash(git -C \"C:\\\\Users\\\\dchmb\\\\Documents\\\\David\\\\BeauxWorks\" status)",
+      "Bash(git -C \"C:\\\\Users\\\\dchmb\\\\Documents\\\\David\\\\BeauxWorks\" diff --stat)",
+      "Bash(git -C \"C:\\\\Users\\\\dchmb\\\\Documents\\\\David\\\\BeauxWorks\" log --oneline -10)",
+      "Bash(git -C \"C:\\\\Users\\\\dchmb\\\\Documents\\\\David\\\\BeauxWorks\" remote -v)",
+      "Bash(git -C \"C:\\\\Users\\\\dchmb\\\\Documents\\\\David\\\\BeauxWorks\" diff --staged --stat)",
+      "Bash(git -C \"C:\\\\Users\\\\dchmb\\\\Documents\\\\David\\\\BeauxWorks\" add .gitignore backend/app/api/v1/lookups.py backend/app/api/v1/recipes.py backend/app/models/foundations.py backend/app/schemas/lookups.py backend/app/schemas/recipes.py backend/app/services/auth_service.py backend/app/services/recipe_service.py src/api/lookups.js src/api/recipes.js src/components/layout/topbar.jsx src/components/shared/status-badge.jsx src/config/routes.jsx src/features/production/production-runs-page.jsx src/features/recipes/recipe-detail-page.jsx src/features/recipes/recipes-page.jsx src/features/settings/profile-page.jsx .claude/settings.local.json db/10-item-types-lookup.sql src/api/qc-plans.js src/components/ui/popover.jsx src/features/recipes/ingredient-editor.jsx src/features/recipes/step-editor.jsx src/features/settings/code-tables-page.jsx src/features/settings/ingredient-categories-manager.jsx src/features/settings/ingredients-manager.jsx src/features/settings/item-types-manager.jsx src/features/settings/qc-plans-manager.jsx src/features/settings/settings-page.jsx)"
+    ]
+  }
+}

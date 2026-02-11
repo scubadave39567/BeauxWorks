@@ -84,6 +84,134 @@ def retire_recipe_version(db: Session, version_id: uuid.UUID, user) -> RecipeVer
     return version
 
 
+def _get_version_draft(db: Session, version_id: uuid.UUID) -> RecipeVersion:
+    version = db.query(RecipeVersion).filter(
+        RecipeVersion.recipe_version_id == version_id,
+        RecipeVersion.is_deleted == False,
+    ).first()
+    if not version:
+        raise NotFoundError("Recipe version not found")
+    if version.status != "Draft":
+        raise BusinessError("Only Draft versions can be edited", error_code="VERSION_NOT_DRAFT")
+    return version
+
+
+def create_version(db: Session, recipe_id: uuid.UUID, *, base_yield_value: float, base_yield_unit_id: uuid.UUID, title: str | None = None, notes: str | None = None) -> RecipeVersion:
+    recipe = get_recipe(db, recipe_id)
+    max_ver = db.query(db.query(RecipeVersion.version_number).filter(
+        RecipeVersion.recipe_id == recipe_id, RecipeVersion.is_deleted == False
+    ).subquery().c.version_number).scalar() or 0
+    # simpler approach
+    existing = (
+        db.query(RecipeVersion)
+        .filter(RecipeVersion.recipe_id == recipe_id, RecipeVersion.is_deleted == False)
+        .all()
+    )
+    next_num = max((v.version_number for v in existing), default=0) + 1
+    version = RecipeVersion(
+        recipe_id=recipe_id,
+        version_number=next_num,
+        title=title,
+        notes=notes,
+        base_yield_value=base_yield_value,
+        base_yield_unit_id=base_yield_unit_id,
+        is_current=True,
+        status="Draft",
+    )
+    # Mark old versions as not current
+    for v in existing:
+        v.is_current = False
+    db.add(version)
+    db.flush()
+    return version
+
+
+def add_ingredient(db: Session, version_id: uuid.UUID, *, ingredient_id: uuid.UUID, base_amount: float, unit_id: uuid.UUID, sort_order: int = 1000, rounding_mode: str | None = None, rounding_decimals: int | None = None, rounding_increment: float | None = None, notes: str | None = None) -> RecipeVersionIngredient:
+    _get_version_draft(db, version_id)
+    ing = RecipeVersionIngredient(
+        recipe_version_id=version_id,
+        ingredient_id=ingredient_id,
+        base_amount=base_amount,
+        unit_id=unit_id,
+        sort_order=sort_order,
+        rounding_mode=rounding_mode,
+        rounding_decimals=rounding_decimals,
+        rounding_increment=rounding_increment,
+        notes=notes,
+    )
+    db.add(ing)
+    db.flush()
+    return ing
+
+
+def update_ingredient(db: Session, version_id: uuid.UUID, ingredient_line_id: uuid.UUID, **kwargs) -> RecipeVersionIngredient:
+    _get_version_draft(db, version_id)
+    ing = db.query(RecipeVersionIngredient).filter(
+        RecipeVersionIngredient.recipe_version_ingredient_id == ingredient_line_id,
+        RecipeVersionIngredient.is_deleted == False,
+    ).first()
+    if not ing:
+        raise NotFoundError("Ingredient not found")
+    for key, value in kwargs.items():
+        if value is not None:
+            setattr(ing, key, value)
+    db.flush()
+    return ing
+
+
+def delete_ingredient(db: Session, version_id: uuid.UUID, ingredient_line_id: uuid.UUID) -> None:
+    _get_version_draft(db, version_id)
+    ing = db.query(RecipeVersionIngredient).filter(
+        RecipeVersionIngredient.recipe_version_ingredient_id == ingredient_line_id,
+        RecipeVersionIngredient.is_deleted == False,
+    ).first()
+    if not ing:
+        raise NotFoundError("Ingredient not found")
+    ing.is_deleted = True
+    db.flush()
+
+
+def add_step(db: Session, version_id: uuid.UUID, *, step_number: int, instruction: str, critical_control_point: bool = False, notes: str | None = None) -> RecipeVersionStep:
+    _get_version_draft(db, version_id)
+    step = RecipeVersionStep(
+        recipe_version_id=version_id,
+        step_number=step_number,
+        instruction=instruction,
+        critical_control_point=critical_control_point,
+        notes=notes,
+    )
+    db.add(step)
+    db.flush()
+    return step
+
+
+def update_step(db: Session, version_id: uuid.UUID, step_id: uuid.UUID, **kwargs) -> RecipeVersionStep:
+    _get_version_draft(db, version_id)
+    step = db.query(RecipeVersionStep).filter(
+        RecipeVersionStep.recipe_version_step_id == step_id,
+        RecipeVersionStep.is_deleted == False,
+    ).first()
+    if not step:
+        raise NotFoundError("Step not found")
+    for key, value in kwargs.items():
+        if value is not None:
+            setattr(step, key, value)
+    db.flush()
+    return step
+
+
+def delete_step(db: Session, version_id: uuid.UUID, step_id: uuid.UUID) -> None:
+    _get_version_draft(db, version_id)
+    step = db.query(RecipeVersionStep).filter(
+        RecipeVersionStep.recipe_version_step_id == step_id,
+        RecipeVersionStep.is_deleted == False,
+    ).first()
+    if not step:
+        raise NotFoundError("Step not found")
+    step.is_deleted = True
+    db.flush()
+
+
 def get_scaled_recipe(
     db: Session,
     recipe_version_id: uuid.UUID,

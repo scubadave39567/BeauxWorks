@@ -271,6 +271,10 @@ export default function RecipeDetailPage() {
           open={scaleOpen}
           onOpenChange={setScaleOpen}
           recipeVersionId={currentVersion.recipe_version_id}
+          recipe={recipe}
+          version={currentVersion}
+          unitsMap={unitsMap}
+          recipeCategoriesMap={recipeCategoriesMap}
         />
       )}
 

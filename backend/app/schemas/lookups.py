@@ -24,6 +24,22 @@ class FacilityResponse(BaseModel):
     is_active: bool
 
 
+class FacilityCreate(BaseModel):
+    name: str
+    code: str | None = None
+    address: str | None = None
+    timezone: str | None = None
+    is_active: bool = True
+
+
+class FacilityUpdate(BaseModel):
+    name: str | None = None
+    code: str | None = None
+    address: str | None = None
+    timezone: str | None = None
+    is_active: bool | None = None
+
+
 class RunStatusResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

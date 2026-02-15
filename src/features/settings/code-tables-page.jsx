@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/layout/page-header'
+import { FacilitiesManager } from './facilities-manager'
 import { ItemTypesManager } from './item-types-manager'
 import { IngredientCategoriesManager } from './ingredient-categories-manager'
 import { IngredientsManager } from './ingredients-manager'
@@ -13,6 +14,7 @@ export default function CodeTablesPage() {
         description="Manage lookup values used across the system"
       />
       <div className="space-y-6">
+        <FacilitiesManager />
         <IngredientsManager />
         <ItemTypesManager />
         <IngredientCategoriesManager />

@@ -99,7 +99,7 @@ export default function ProductionRunDetailPage() {
 
   return (
     <div>
-      <PageHeader title={run.lot_code || 'Production Run'} description={facility?.name || ''}>
+      <PageHeader title={run.lot_code || 'Production Run'} description={`${run.recipe_name || ''} ${run.recipe_name && facility ? '—' : ''} ${facility?.name || ''}`}>
         {isPlanned && (
           <Button onClick={() => startMutation.mutate()} disabled={startMutation.isPending} className="min-h-[44px]">
             <Play className="h-4 w-4" /> Start Run
@@ -143,7 +143,9 @@ export default function ProductionRunDetailPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <div><p className="text-muted-foreground">Recipe</p><p className="font-medium">{run.recipe_name || '—'}</p></div>
                 <div><p className="text-muted-foreground">Lot Code</p><p className="font-mono font-medium">{run.lot_code || '—'}</p></div>
+                <div><p className="text-muted-foreground">Batch Size</p><p className="font-mono">{formatNumber(run.target_yield_value)} {unitsMap.get(run.target_yield_unit_id)?.abbreviation || ''}</p></div>
                 <div><p className="text-muted-foreground">Facility</p><p>{facility?.name || '—'}</p></div>
                 <div><p className="text-muted-foreground">Status</p><StatusBadge status={run.status.toLowerCase()} label={run.status} /></div>
                 <div><p className="text-muted-foreground">Started</p><p>{formatDateTime(run.started_at)}</p></div>

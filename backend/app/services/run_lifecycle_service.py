@@ -2,7 +2,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions import BusinessError, NotFoundError
 from app.models.foundations import RunStatus
@@ -182,6 +182,7 @@ def transition_status(
 def get_run(db: Session, run_id: uuid.UUID) -> ProductionRun:
     run = (
         db.query(ProductionRun)
+        .options(joinedload(ProductionRun.recipe_version).joinedload(RecipeVersion.recipe))
         .filter(ProductionRun.production_run_id == run_id, ProductionRun.is_deleted == False)
         .first()
     )
@@ -198,7 +199,11 @@ def list_runs(
     skip: int = 0,
     limit: int = 50,
 ) -> list[ProductionRun]:
-    q = db.query(ProductionRun).filter(ProductionRun.is_deleted == False)
+    q = (
+        db.query(ProductionRun)
+        .options(joinedload(ProductionRun.recipe_version).joinedload(RecipeVersion.recipe))
+        .filter(ProductionRun.is_deleted == False)
+    )
     if facility_id:
         q = q.filter(ProductionRun.facility_id == facility_id)
     if status:

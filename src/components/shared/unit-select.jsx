@@ -1,17 +1,18 @@
 import { forwardRef } from 'react'
-import { Select } from '@/components/ui/select'
+import { LookupSelect } from './lookup-select'
 
 const UnitSelect = forwardRef(({ units = [], unitType, placeholder = 'Select unit...', ...props }, ref) => {
   const filtered = unitType ? units.filter((u) => u.unit_type === unitType) : units
+  const items = filtered.map((u) => ({ ...u, _label: `${u.name} (${u.abbreviation})` }))
   return (
-    <Select ref={ref} {...props}>
-      <option value="">{placeholder}</option>
-      {filtered.map((u) => (
-        <option key={u.unit_id} value={u.unit_id}>
-          {u.name} ({u.abbreviation})
-        </option>
-      ))}
-    </Select>
+    <LookupSelect
+      ref={ref}
+      items={items}
+      valueField="unit_id"
+      labelField="_label"
+      placeholder={placeholder}
+      {...props}
+    />
   )
 })
 UnitSelect.displayName = 'UnitSelect'

@@ -45,7 +45,7 @@ export default function ProductionRunFormPage() {
       }))
   )
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       recipe_version_id: '',
@@ -87,7 +87,8 @@ export default function ProductionRunFormPage() {
                 valueField="recipe_version_id"
                 labelField="label"
                 placeholder="Select recipe version..."
-                {...register('recipe_version_id')}
+                value={watch('recipe_version_id')}
+                onChange={(e) => setValue('recipe_version_id', e.target.value)}
               />
               {errors.recipe_version_id && <p className="text-sm text-destructive">{errors.recipe_version_id.message}</p>}
               {versionOptions.length === 0 && (
@@ -97,7 +98,7 @@ export default function ProductionRunFormPage() {
 
             <div className="space-y-2">
               <Label>Facility</Label>
-              <LookupSelect items={facilities} valueField="facility_id" labelField="name" placeholder="Select facility..." {...register('facility_id')} />
+              <LookupSelect items={facilities} valueField="facility_id" labelField="name" placeholder="Select facility..." value={watch('facility_id')} onChange={(e) => setValue('facility_id', e.target.value)} />
               {errors.facility_id && <p className="text-sm text-destructive">{errors.facility_id.message}</p>}
             </div>
 
@@ -109,7 +110,7 @@ export default function ProductionRunFormPage() {
               </div>
               <div className="space-y-2">
                 <Label>Yield Unit</Label>
-                <UnitSelect units={units} {...register('target_yield_uom_id')} />
+                <UnitSelect units={units} value={watch('target_yield_uom_id')} onChange={(e) => setValue('target_yield_uom_id', e.target.value)} />
                 {errors.target_yield_uom_id && <p className="text-sm text-destructive">{errors.target_yield_uom_id.message}</p>}
               </div>
             </div>

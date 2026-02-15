@@ -10,6 +10,20 @@ export async function getFacilities() {
   return data
 }
 
+export async function createFacility(payload) {
+  const { data } = await api.post('/lookups/facilities', payload)
+  return data
+}
+
+export async function updateFacility(id, payload) {
+  const { data } = await api.patch(`/lookups/facilities/${id}`, payload)
+  return data
+}
+
+export async function deleteFacility(id) {
+  await api.delete(`/lookups/facilities/${id}`)
+}
+
 export async function getRunStatuses() {
   const { data } = await api.get('/lookups/run-statuses')
   return data

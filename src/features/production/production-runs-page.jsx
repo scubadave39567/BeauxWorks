@@ -23,6 +23,7 @@ export default function ProductionRunsPage() {
   const navigate = useNavigate()
   const { unitsMap, facilitiesMap } = useLookups()
 
+
   const { data: runs = [], isLoading } = useQuery({
     queryKey: ['runs'],
     queryFn: () => getRuns({ limit: 200 }),
@@ -42,6 +43,11 @@ export default function ProductionRunsPage() {
       ),
     },
     {
+      accessorKey: 'recipe_name',
+      header: 'Recipe',
+      cell: ({ row }) => row.original.recipe_name || '—',
+    },
+    {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => (
@@ -57,12 +63,15 @@ export default function ProductionRunsPage() {
     },
     {
       accessorKey: 'target_yield_value',
-      header: 'Target Yield',
-      cell: ({ row }) => (
-        <span className="font-mono">
-          {formatNumber(row.original.target_yield_value)}
-        </span>
-      ),
+      header: 'Batch Size',
+      cell: ({ row }) => {
+        const unit = unitsMap.get(row.original.target_yield_unit_id)
+        return (
+          <span className="font-mono">
+            {formatNumber(row.original.target_yield_value)} {unit?.abbreviation || ''}
+          </span>
+        )
+      },
     },
     {
       accessorKey: 'created_at',
@@ -111,6 +120,7 @@ export default function ProductionRunsPage() {
             onRowClick={(row) => navigate(`/production/${row.production_run_id}`)}
             renderCard={(run) => {
               const facility = facilitiesMap.get(run.facility_id)
+              const unit = unitsMap.get(run.target_yield_unit_id)
               return (
                 <Card>
                   <CardContent className="p-4">
@@ -120,9 +130,10 @@ export default function ProductionRunsPage() {
                           <Factory className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-mono font-medium">{run.lot_code || 'No lot code'}</p>
+                          <p className="font-medium">{run.recipe_name || 'No recipe'}</p>
+                          <p className="font-mono text-sm">{run.lot_code || 'No lot code'}</p>
                           <p className="text-xs text-muted-foreground">
-                            {facility?.name} | {formatNumber(run.target_yield_value)}
+                            {facility?.name} | {formatNumber(run.target_yield_value)} {unit?.abbreviation || ''}
                           </p>
                         </div>
                       </div>

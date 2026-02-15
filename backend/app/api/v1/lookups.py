@@ -16,7 +16,9 @@ from app.models.foundations import (
 from app.models.production import ProductType, QualityMetricType
 from app.models.recipes import Ingredient
 from app.schemas.lookups import (
+    FacilityCreate,
     FacilityResponse,
+    FacilityUpdate,
     IngredientCategoryCreate,
     IngredientCategoryResponse,
     IngredientCategoryUpdate,
@@ -54,6 +56,44 @@ def list_facilities(db: DbSession):
         .order_by(Facility.name)
         .all()
     )
+
+
+@router.post("/facilities", response_model=FacilityResponse, status_code=201)
+def create_facility(payload: FacilityCreate, db: DbSession):
+    fac = Facility(**payload.model_dump())
+    db.add(fac)
+    db.commit()
+    db.refresh(fac)
+    return fac
+
+
+@router.patch("/facilities/{facility_id}", response_model=FacilityResponse)
+def update_facility(facility_id: UUID, payload: FacilityUpdate, db: DbSession):
+    fac = (
+        db.query(Facility)
+        .filter(Facility.facility_id == facility_id, Facility.is_deleted == False)
+        .first()
+    )
+    if not fac:
+        raise HTTPException(status_code=404, detail="Facility not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(fac, field, value)
+    db.commit()
+    db.refresh(fac)
+    return fac
+
+
+@router.delete("/facilities/{facility_id}", status_code=204)
+def delete_facility(facility_id: UUID, db: DbSession):
+    fac = (
+        db.query(Facility)
+        .filter(Facility.facility_id == facility_id, Facility.is_deleted == False)
+        .first()
+    )
+    if not fac:
+        raise HTTPException(status_code=404, detail="Facility not found")
+    fac.is_deleted = True
+    db.commit()
 
 
 @router.get("/run-statuses", response_model=list[RunStatusResponse])

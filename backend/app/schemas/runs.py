@@ -20,6 +20,7 @@ class RunResponse(BaseModel):
     recipe_version_id: UUID
     facility_id: UUID
     status: str
+    recipe_name: str | None = None
     target_yield_value: float
     target_yield_unit_id: UUID
     actual_yield_value: float | None = None
@@ -39,7 +40,9 @@ class RunListResponse(BaseModel):
     status: str
     facility_id: UUID
     recipe_version_id: UUID
+    recipe_name: str | None = None
     target_yield_value: float
+    target_yield_unit_id: UUID
     lot_code: str | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None

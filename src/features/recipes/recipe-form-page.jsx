@@ -42,6 +42,8 @@ export default function RecipeFormPage() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -111,7 +113,8 @@ export default function RecipeFormPage() {
                 valueField="recipe_category_id"
                 labelField="name"
                 placeholder="Select category..."
-                {...register('recipe_category_id')}
+                value={watch('recipe_category_id')}
+                onChange={(e) => setValue('recipe_category_id', e.target.value)}
               />
             </div>
 
@@ -138,7 +141,8 @@ export default function RecipeFormPage() {
                 <Label htmlFor="unit">Yield Unit</Label>
                 <UnitSelect
                   units={units}
-                  {...register('default_base_yield_unit_id')}
+                  value={watch('default_base_yield_unit_id')}
+                  onChange={(e) => setValue('default_base_yield_unit_id', e.target.value)}
                 />
                 {errors.default_base_yield_unit_id && (
                   <p className="text-sm text-destructive">{errors.default_base_yield_unit_id.message}</p>

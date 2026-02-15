@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getRun, transitionRunStatus } from '@/api/runs'
+import { getRun, transitionRunStatus, deleteRun } from '@/api/runs'
 import { getDeviations } from '@/api/deviations'
 import { useLookups } from '@/hooks/use-lookups'
 import { PageHeader } from '@/components/layout/page-header'
@@ -21,7 +21,7 @@ import { QcEntryForm } from './qc-entry-form'
 import { DeviationForm } from './deviation-form'
 import { DeviationCloseDialog } from './deviation-close-dialog'
 import { ScalePanel } from './scale-panel'
-import { Play, CheckCircle2, XCircle, ClipboardPlus, AlertTriangle, Printer } from 'lucide-react'
+import { Play, CheckCircle2, XCircle, ClipboardPlus, AlertTriangle, Printer, Trash2 } from 'lucide-react'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { toast } from 'sonner'
 import {
@@ -41,6 +41,7 @@ export default function ProductionRunDetailPage() {
   const [completeOpen, setCompleteOpen] = useState(false)
   const [finalYield, setFinalYield] = useState('')
   const [closeDevId, setCloseDevId] = useState(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const { data: run, isLoading } = useQuery({
     queryKey: ['run', id],
@@ -79,6 +80,16 @@ export default function ProductionRunDetailPage() {
     },
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteRun(id),
+    onSuccess: () => {
+      toast.success('Production run deleted')
+      queryClient.invalidateQueries({ queryKey: ['runs'] })
+      navigate('/production')
+    },
+    onError: () => toast.error('Failed to delete production run'),
+  })
+
   const cancelMutation = useMutation({
     mutationFn: () => transitionRunStatus(id, { target_status: 'Canceled' }),
     onSuccess: () => {
@@ -113,6 +124,11 @@ export default function ProductionRunDetailPage() {
         {canCancel && (
           <Button variant="destructive" onClick={() => setCancelOpen(true)} className="min-h-[44px]">
             <XCircle className="h-4 w-4" /> Cancel
+          </Button>
+        )}
+        {hasRole('admin', 'qa') && (
+          <Button variant="destructive" onClick={() => setDeleteOpen(true)} className="min-h-[44px]">
+            <Trash2 className="h-4 w-4" /> Delete
           </Button>
         )}
       </PageHeader>
@@ -239,6 +255,16 @@ export default function ProductionRunDetailPage() {
         confirmLabel="Cancel Run"
         onConfirm={() => cancelMutation.mutate()}
         loading={cancelMutation.isPending}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete Production Run"
+        description={`Are you sure you want to delete production run "${run.lot_code}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={() => deleteMutation.mutate()}
+        loading={deleteMutation.isPending}
       />
 
       {/* Complete dialog with final yield input */}

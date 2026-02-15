@@ -1,8 +1,9 @@
 import uuid
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response, status
 from app.api.deps import DbSession, OperatorPlus, AdminOrQA
 from app.schemas.api_response import ApiResponse
 from app.schemas.runs import RunCreate, RunResponse, RunListResponse, StatusTransitionRequest
+from app.services.audit_service import write_audit_log
 from app.services.run_lifecycle_service import create_run, transition_status, get_run, list_runs
 
 router = APIRouter(prefix="/runs", tags=["runs"])
@@ -70,6 +71,24 @@ def api_transition_status(run_id: uuid.UUID, body: StatusTransitionRequest, db: 
     )
     db.commit()
     return ApiResponse.ok(_run_to_response(run))
+
+
+@router.delete("/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
+def api_delete_run(run_id: uuid.UUID, db: DbSession, user: AdminOrQA):
+    run = get_run(db, run_id)
+    run.is_deleted = True
+    db.flush()
+    write_audit_log(
+        db,
+        action="RunDeleted",
+        actor_user_id=user.user_id,
+        entity_type="ProductionRun",
+        entity_id=run.production_run_id,
+        event_type="RunDeleted",
+        details={"lot_code": run.lot_code},
+    )
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _run_to_response(run) -> RunResponse:

@@ -22,3 +22,7 @@ export async function transitionRunStatus(runId, payload) {
   const { data } = await api.post(`/runs/${runId}/status`, payload)
   return data
 }
+
+export async function deleteRun(runId) {
+  await api.delete(`/runs/${runId}`)
+}
